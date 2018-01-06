@@ -1,0 +1,7 @@
+resolver: lts-10.2
+
+packages:
+- .
+
+extra-deps:
+- Crypto-4.2.5.1

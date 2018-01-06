@@ -1,0 +1,86 @@
+-- This file has been generated from package.yaml by hpack version 0.20.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: df24671fe7e61ffaa3a2aedba2c00c4c0f1fd9d1abdcc0bb7b5f038ad2dcd4fc
+
+name:           bittrex-bot
+version:        0.1.0.0
+description:    Please see the README on Github at <https://github.com/githubuser/simple#readme>
+homepage:       https://github.com/githubuser/simple#readme
+bug-reports:    https://github.com/githubuser/simple/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2018 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
+
+extra-source-files:
+    ChangeLog.md
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/simple
+
+library
+  hs-source-dirs:
+      src
+  default-extensions: OverloadedStrings
+  build-depends:
+      Crypto ==4.2.*
+    , aeson ==1.2.*
+    , base >=4.7 && <5
+    , bytestring ==0.10.*
+    , lens ==4.15.*
+    , lens-aeson ==1.0.*
+    , time ==1.8.*
+    , wreq ==0.5.*
+  exposed-modules:
+      Lib
+  other-modules:
+      Paths_bittrex_bot
+  default-language: Haskell2010
+
+executable simple-exe
+  main-is: Main.hs
+  hs-source-dirs:
+      app
+  default-extensions: OverloadedStrings
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      Crypto ==4.2.*
+    , aeson ==1.2.*
+    , base >=4.7 && <5
+    , bittrex-bot
+    , bytestring ==0.10.*
+    , lens ==4.15.*
+    , lens-aeson ==1.0.*
+    , time ==1.8.*
+    , wreq ==0.5.*
+  other-modules:
+      Paths_bittrex_bot
+  default-language: Haskell2010
+
+test-suite simple-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  hs-source-dirs:
+      test
+  default-extensions: OverloadedStrings
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      Crypto ==4.2.*
+    , aeson ==1.2.*
+    , base >=4.7 && <5
+    , bittrex-bot
+    , bytestring ==0.10.*
+    , lens ==4.15.*
+    , lens-aeson ==1.0.*
+    , time ==1.8.*
+    , wreq ==0.5.*
+  other-modules:
+      Paths_bittrex_bot
+  default-language: Haskell2010
