@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: df24671fe7e61ffaa3a2aedba2c00c4c0f1fd9d1abdcc0bb7b5f038ad2dcd4fc
+-- hash: aae2c4bbed495ab8cff83a04adfa067d0427305e03fa49c828b9ed513232ccbd
 
 name:           bittrex-bot
 version:        0.1.0.0
@@ -28,7 +28,7 @@ source-repository head
 library
   hs-source-dirs:
       src
-  default-extensions: OverloadedStrings
+  default-extensions: OverloadedStrings DeriveGeneric
   build-depends:
       Crypto ==4.2.*
     , aeson ==1.2.*
@@ -36,7 +36,10 @@ library
     , bytestring ==0.10.*
     , lens ==4.15.*
     , lens-aeson ==1.0.*
+    , scientific ==0.3.*
+    , text ==1.2.*
     , time ==1.8.*
+    , vector ==0.12.*
     , wreq ==0.5.*
   exposed-modules:
       Lib
@@ -48,7 +51,7 @@ executable simple-exe
   main-is: Main.hs
   hs-source-dirs:
       app
-  default-extensions: OverloadedStrings
+  default-extensions: OverloadedStrings DeriveGeneric
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Crypto ==4.2.*
@@ -58,7 +61,10 @@ executable simple-exe
     , bytestring ==0.10.*
     , lens ==4.15.*
     , lens-aeson ==1.0.*
+    , scientific ==0.3.*
+    , text ==1.2.*
     , time ==1.8.*
+    , vector ==0.12.*
     , wreq ==0.5.*
   other-modules:
       Paths_bittrex_bot
@@ -69,7 +75,7 @@ test-suite simple-test
   main-is: Spec.hs
   hs-source-dirs:
       test
-  default-extensions: OverloadedStrings
+  default-extensions: OverloadedStrings DeriveGeneric
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Crypto ==4.2.*
@@ -79,7 +85,10 @@ test-suite simple-test
     , bytestring ==0.10.*
     , lens ==4.15.*
     , lens-aeson ==1.0.*
+    , scientific ==0.3.*
+    , text ==1.2.*
     , time ==1.8.*
+    , vector ==0.12.*
     , wreq ==0.5.*
   other-modules:
       Paths_bittrex_bot

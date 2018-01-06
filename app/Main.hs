@@ -6,6 +6,6 @@ import Control.Lens
 
 main :: IO ()
 main = do
-  r <- makeAuthRequest "https://bittrex.com/api/v1.1/public/getmarkets"
-  putStrLn "dua"
+  --r <- makeAuthRequest "https://bittrex.com/api/v1.1/public/getmarkets"
   --putStrLn . show $ r ^. responseBody
+  getTicks >>= putStrLn . show

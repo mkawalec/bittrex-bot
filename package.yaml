@@ -21,6 +21,7 @@ description:         Please see the README on Github at <https://github.com/gith
 
 default-extensions:
 - OverloadedStrings
+- DeriveGeneric
 
 dependencies:
 - base >= 4.7 && < 5
@@ -31,6 +32,9 @@ dependencies:
 - time == 1.8.*
 - bytestring == 0.10.*
 - Crypto == 4.2.*
+- text == 1.2.*
+- scientific == 0.3.*
+- vector == 0.12.*
 
 library:
   source-dirs: src
