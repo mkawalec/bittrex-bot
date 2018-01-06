@@ -2,6 +2,9 @@ module Lib
     ( someFunc
     , makeAuthRequest
     , getTicks
+    , Tick(..)
+    , APIResponse(..)
+    , gaussianSmooth
     ) where
 
 import Control.Lens
@@ -23,6 +26,7 @@ import Data.Time.Format (parseTimeM, defaultTimeLocale)
 import Data.Text (Text)
 import Data.Scientific (Scientific)
 import Data.Vector (Vector)
+import qualified Data.Vector as V
 import GHC.Generics
 
 apiSecret :: ByteString
@@ -37,10 +41,10 @@ someFunc = putStrLn "someFunc"
 
 data Tick = Tick {
   baseVolume :: Scientific
-, close :: Scientific
-, high :: Scientific
-, low :: Scientific
-, open :: Scientific
+, closeV :: Scientific
+, highV :: Scientific
+, lowV :: Scientific
+, openV :: Scientific
 , timestamp :: Maybe Int
 , volume :: Scientific
 } deriving (Show, Eq)
@@ -70,12 +74,41 @@ instance FromJSON Tick where
 
 instance FromJSON a => FromJSON (APIResponse a)
 
+convolve :: Vector Double -> Vector Double -> Int -> Vector Double
+convolve a b idx = initial V.// updates
+    where initial = V.replicate (V.length a) 0.0
+          updates = map convolve' [(max 0 idx)..(min (V.length a - 1) (idx + V.length b - 1))]
+
+          convolve' :: Int -> (Int, Double)
+          convolve' i = (i, a V.! i * b V.! (i - idx))
+
+gaussianSmooth :: Int -> Vector Double -> Vector Double
+gaussianSmooth omega input = V.fromList $ map V.sum convolutions
+  where
+        convolutions = map (convolve padded mask) [0..(inputL - 1)]
+        mask = V.generate (6 * omega) $
+                  \i -> gauss (fromIntegral omega) (fromIntegral . abs $ 3 * omega - i)
+
+        inputL = V.length input
+        padded = V.generate (6 * omega + inputL) $
+                  \i -> if i < 3 * omega
+                          then input V.! 0
+                          else if i >= inputL + 3 * omega
+                                then input V.! (inputL - 1)
+                                else input V.! (i - 3 * omega)
+
+
+gauss :: Double -> Double -> Double
+gauss omega x = let normalizer = 1 / (sqrt $ 2 * pi * (omega ** 2))
+                in normalizer * (exp $ - (x ** 2) / (2 * (omega ** 2)))
+
+
 getTicks :: IO (Maybe (APIResponse (Vector Tick)))
 getTicks = do
   time <- round <$> getPOSIXTime
   let url = BC.concat [
               "https://bittrex.com/Api/v2.0/pub/market/GetTicks"
-            , "?marketName=BTC-ADA"
+            , "?marketName=BTC-ETH"
             , "&tickInterval=oneMin"
             , "&_="
             , BC.pack $ show time]

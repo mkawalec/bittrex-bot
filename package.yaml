@@ -35,6 +35,8 @@ dependencies:
 - text == 1.2.*
 - scientific == 0.3.*
 - vector == 0.12.*
+- Chart-cairo == 1.8.*
+- Chart == 1.8.*
 
 library:
   source-dirs: src
@@ -47,6 +49,7 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wall
     dependencies:
     - bittrex-bot
 

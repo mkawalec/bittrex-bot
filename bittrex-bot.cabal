@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: aae2c4bbed495ab8cff83a04adfa067d0427305e03fa49c828b9ed513232ccbd
+-- hash: 95e455bcdfc94991c1e458d8c956374c9fb09df844c2f88b198218789ece4f43
 
 name:           bittrex-bot
 version:        0.1.0.0
@@ -30,7 +30,9 @@ library
       src
   default-extensions: OverloadedStrings DeriveGeneric
   build-depends:
-      Crypto ==4.2.*
+      Chart ==1.8.*
+    , Chart-cairo ==1.8.*
+    , Crypto ==4.2.*
     , aeson ==1.2.*
     , base >=4.7 && <5
     , bytestring ==0.10.*
@@ -52,9 +54,11 @@ executable simple-exe
   hs-source-dirs:
       app
   default-extensions: OverloadedStrings DeriveGeneric
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
   build-depends:
-      Crypto ==4.2.*
+      Chart ==1.8.*
+    , Chart-cairo ==1.8.*
+    , Crypto ==4.2.*
     , aeson ==1.2.*
     , base >=4.7 && <5
     , bittrex-bot
@@ -78,7 +82,9 @@ test-suite simple-test
   default-extensions: OverloadedStrings DeriveGeneric
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      Crypto ==4.2.*
+      Chart ==1.8.*
+    , Chart-cairo ==1.8.*
+    , Crypto ==4.2.*
     , aeson ==1.2.*
     , base >=4.7 && <5
     , bittrex-bot
