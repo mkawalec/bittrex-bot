@@ -43,7 +43,7 @@ main = do
   resp <- getTicks "BTC-ADA"
   let ticksV = result $ fromMaybe (APIResponse True "" V.empty) resp
       fullTicks = history `S.union` (S.fromList . V.toList $ ticksV)
-      fullV = V.fromList $ S.toList fullTicks
+      fullV = V.fromList $ S.toAscList fullTicks
       unboxedticks = VU.fromList $ V.toList $ fmap tickToCoords fullV
 
   history `deepseq` serializeResults fileName $ V.toList fullV
