@@ -5,6 +5,9 @@ module Lib
     , Tick(..)
     , APIResponse(..)
     , gaussianSmooth
+    , findExtrema
+    , Extremum(..)
+    , ExtremumType(..)
     ) where
 
 import Control.Lens
@@ -54,7 +57,7 @@ data Tick = Tick {
 } deriving (Show, Eq, Generic, NFData)
 
 instance Ord Tick where
-  compare a b = if a < b then LT else GT
+  compare a b = if timestamp a < timestamp b then LT else GT
 
 data APIResponse a = APIResponse {
   success :: Bool
@@ -76,7 +79,12 @@ instance FromJSON Tick where
     <*> fmap timeToTimestamp (v .: "T")
     <*> v .: "V"
 
+instance ToJSON Tick where
+  toEncoding = genericToEncoding defaultOptions
+
 instance FromJSON a => FromJSON (APIResponse a)
+instance ToJSON a => ToJSON (APIResponse a) where
+  toEncoding = genericToEncoding defaultOptions
 
 convolveSum :: VU.Vector Double -> VU.Vector Double -> Int -> Double
 {-# INLINE convolveSum #-}
@@ -106,13 +114,43 @@ gauss :: Double -> Double -> Double
 gauss omega x = let normalizer = 1 / (sqrt $ 2 * pi * (omega ** 2))
                 in normalizer * (exp $ - (x ** 2) / (2 * (omega ** 2)))
 
+data ExtremumType = Minimum | Switch | Maximum deriving (Show, Eq, Ord)
+data Extremum = Extremum {
+  extremumType :: ExtremumType
+, index :: Int
+} deriving (Show, Eq, Ord)
 
-getTicks :: IO (Maybe (APIResponse (Vector Tick)))
-getTicks = do
+findExtrema :: VU.Vector Double -> [Extremum]
+findExtrema input =
+  let offset = VU.head input `VU.cons` input
+      der = VU.zipWith (-) input offset
+
+      findExtrema' :: [Extremum] -> Int -> [Extremum]
+      {-# INLINE findExtrema' #-}
+      findExtrema' xs i
+        | i > 0 && i < VU.length der - 1 =
+            if der VU.! (i - 1) < 0 && der VU.! i > 0
+              then (Extremum Minimum i):xs
+              else if der VU.! (i - 1) > 0 && der VU.! i < 0
+                   then (Extremum Maximum i):xs
+                   else xs
+        | otherwise = xs
+  in reverse $ foldl' findExtrema' [] [0..(VU.length der - 1)]
+
+data Action a = Sell a | Buy a | Hold deriving (Show, Eq, Ord)
+data History = BoughtAt Double | SoldAt Double
+
+-- we need bots that are functions and then
+-- a simulator that runs these bots for the whole interval
+
+
+getTicks :: ByteString -> IO (Maybe (APIResponse (Vector Tick)))
+getTicks market = do
   time <- round <$> getPOSIXTime
   let url = BC.concat [
               "https://bittrex.com/Api/v2.0/pub/market/GetTicks"
-            , "?marketName=BTC-ADA"
+            , "?marketName="
+            , market
             , "&tickInterval=oneMin"
             , "&_="
             , BC.pack $ show time]
