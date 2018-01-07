@@ -6,24 +6,29 @@ import Control.Lens
 import Graphics.Rendering.Chart.Easy
 import Graphics.Rendering.Chart.Backend.Cairo
 import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as VU
 import Data.Scientific (toRealFloat)
 import Data.Maybe (fromMaybe)
+import System.TimeIt (timeIt)
+import Control.DeepSeq (deepseq)
 
 tickToCoords :: Tick -> (Int, Double)
-tickToCoords t = (fromMaybe 0 $ timestamp t, toRealFloat $ closeV t)
+tickToCoords t = (fromMaybe 0 $ timestamp t, closeV t)
 
-reconcile :: (Int, Double) -> Double -> (Int, Double)
+reconcile :: (a, c) -> b -> (a, b)
 reconcile (coord, _) v = (coord, v)
 
 main :: IO ()
 main = do
-  --r <- makeAuthRequest "https://bittrex.com/api/v1.1/public/getmarkets"
-  --putStrLn . show $ r ^. responseBody
-  ticks <- getTicks
+  ticks <- timeIt getTicks
   let ticksData = fromMaybe (APIResponse True "" V.empty) ticks
       tickCoords = fmap tickToCoords (result ticksData)
-      smoothed = V.zipWith reconcile tickCoords (gaussianSmooth 100 $ fmap snd tickCoords)
+      unboxedticks = VU.fromList $ V.toList $ tickCoords
 
-  toFile (def & fo_size .~ (1500, 1500)) "plot.png" $ do
-    plot (line "smoothed" [V.toList smoothed])
+  smooth <- unboxedticks `deepseq` timeIt $ do
+    let smoothed = VU.zipWith reconcile unboxedticks (gaussianSmooth 100 $ VU.map snd unboxedticks)
+    return $! smoothed `deepseq` smoothed
+
+  timeIt $ toFile (def & fo_size .~ (1500, 1500)) "plot.png" $ do
+    plot (line "smoothed" [VU.toList smooth])
     plot (line "original" [V.toList tickCoords])

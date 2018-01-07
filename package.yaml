@@ -22,6 +22,8 @@ description:         Please see the README on Github at <https://github.com/gith
 default-extensions:
 - OverloadedStrings
 - DeriveGeneric
+- DeriveAnyClass
+- ScopedTypeVariables
 
 dependencies:
 - base >= 4.7 && < 5
@@ -37,6 +39,8 @@ dependencies:
 - vector == 0.12.*
 - Chart-cairo == 1.8.*
 - Chart == 1.8.*
+- timeit == 1.*
+- deepseq == 1.4.*
 
 library:
   source-dirs: src
@@ -50,6 +54,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     - -Wall
+    - -O2
     dependencies:
     - bittrex-bot
 

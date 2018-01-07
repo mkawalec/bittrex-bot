@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 95e455bcdfc94991c1e458d8c956374c9fb09df844c2f88b198218789ece4f43
+-- hash: cb01abb053c3ec32e409f1816ac905c4c1b82df25d41428be865285b94f49ad7
 
 name:           bittrex-bot
 version:        0.1.0.0
@@ -28,7 +28,7 @@ source-repository head
 library
   hs-source-dirs:
       src
-  default-extensions: OverloadedStrings DeriveGeneric
+  default-extensions: OverloadedStrings DeriveGeneric DeriveAnyClass ScopedTypeVariables
   build-depends:
       Chart ==1.8.*
     , Chart-cairo ==1.8.*
@@ -36,11 +36,13 @@ library
     , aeson ==1.2.*
     , base >=4.7 && <5
     , bytestring ==0.10.*
+    , deepseq ==1.4.*
     , lens ==4.15.*
     , lens-aeson ==1.0.*
     , scientific ==0.3.*
     , text ==1.2.*
     , time ==1.8.*
+    , timeit ==1.*
     , vector ==0.12.*
     , wreq ==0.5.*
   exposed-modules:
@@ -53,8 +55,8 @@ executable simple-exe
   main-is: Main.hs
   hs-source-dirs:
       app
-  default-extensions: OverloadedStrings DeriveGeneric
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
+  default-extensions: OverloadedStrings DeriveGeneric DeriveAnyClass ScopedTypeVariables
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -O2
   build-depends:
       Chart ==1.8.*
     , Chart-cairo ==1.8.*
@@ -63,11 +65,13 @@ executable simple-exe
     , base >=4.7 && <5
     , bittrex-bot
     , bytestring ==0.10.*
+    , deepseq ==1.4.*
     , lens ==4.15.*
     , lens-aeson ==1.0.*
     , scientific ==0.3.*
     , text ==1.2.*
     , time ==1.8.*
+    , timeit ==1.*
     , vector ==0.12.*
     , wreq ==0.5.*
   other-modules:
@@ -79,7 +83,7 @@ test-suite simple-test
   main-is: Spec.hs
   hs-source-dirs:
       test
-  default-extensions: OverloadedStrings DeriveGeneric
+  default-extensions: OverloadedStrings DeriveGeneric DeriveAnyClass ScopedTypeVariables
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Chart ==1.8.*
@@ -89,11 +93,13 @@ test-suite simple-test
     , base >=4.7 && <5
     , bittrex-bot
     , bytestring ==0.10.*
+    , deepseq ==1.4.*
     , lens ==4.15.*
     , lens-aeson ==1.0.*
     , scientific ==0.3.*
     , text ==1.2.*
     , time ==1.8.*
+    , timeit ==1.*
     , vector ==0.12.*
     , wreq ==0.5.*
   other-modules:
