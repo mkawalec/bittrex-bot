@@ -8,6 +8,11 @@ module Lib
     , findExtrema
     , Extremum(..)
     , ExtremumType(..)
+    , Budget(..)
+    , History(..)
+    , simulate
+    , holdAfterPeakBot
+    , mapFst
     ) where
 
 import Control.Lens
@@ -35,6 +40,7 @@ import Data.List (foldl')
 
 import GHC.Generics
 import Control.DeepSeq
+import qualified Debug.Trace as DT
 
 apiSecret :: ByteString
 apiSecret = "003dda1db8804f98bf6f4345b1e94dc7"
@@ -88,17 +94,37 @@ instance ToJSON a => ToJSON (APIResponse a) where
 
 convolveSum :: VU.Vector Double -> VU.Vector Double -> Int -> Double
 {-# INLINE convolveSum #-}
-convolveSum a b idx = val
-    where val = foldl' convolve' 0 [(max 0 idx)..(min (VU.length a - 1) (idx + VU.length b - 1))]
+convolveSum a b idx = foldl' convolveSum' 0 [start..end]
+    where start = max 0 idx
+          end = min (VU.length a - 1) (idx + VU.length b - 1)
 
-          convolve' :: Double -> Int -> Double
-          {-# INLINE convolve' #-}
-          convolve' acc i = acc + a VU.! i * b VU.! (i - idx)
+          convolveSum' :: Double -> Int -> Double
+          {-# INLINE convolveSum' #-}
+          convolveSum' acc i = acc + a VU.! i * b VU.! (i - idx)
+
+convolve :: VU.Vector Double -> VU.Vector Double -> Int -> VU.Vector Double
+{-# INLINE convolve #-}
+convolve a b idx = VU.generate (VU.length a) convolve'
+  where start = max 0 idx
+        end = min (VU.length a - 1) (idx + VU.length b - 1)
+
+        convolve' :: Int -> Double
+        {-# INLINE convolve' #-}
+        convolve' i = if i >= start && i <= end
+                      then a VU.! i * b VU.! (i - idx)
+                      else 0
+
 
 gaussianSmooth :: Int -> VU.Vector Double -> VU.Vector Double
-gaussianSmooth omega input = VU.generate inputL (convolveSum padded mask)
+{-# INLINE gaussianSmooth #-}
+gaussianSmooth omega input = VU.generate (VU.length input) (convolveSum padded kernel)
+  where (padded, kernel) = gaussianPrepare omega input
+
+gaussianPrepare :: Int -> VU.Vector Double -> (VU.Vector Double, VU.Vector Double)
+{-# INLINE gaussianPrepare #-}
+gaussianPrepare omega input = (padded, kernel)
   where
-        mask = VU.generate (6 * omega) $!
+        kernel = VU.generate (6 * omega) $!
                   \i -> gauss (fromIntegral omega) (fromIntegral . abs $ 3 * omega - i)
 
         inputL = VU.length input
@@ -108,6 +134,57 @@ gaussianSmooth omega input = VU.generate inputL (convolveSum padded mask)
                           else if i >= inputL + 3 * omega
                                 then input VU.! (inputL - 1)
                                 else input VU.! (i - 3 * omega)
+
+data Action = Sell | Buy | Hold deriving (Show, Eq, Ord)
+data History = History Action Int
+  deriving (Show, Eq, Ord)
+
+data Budget = Budget {
+  baseCurr :: Rational
+, boughtCurr :: Rational
+} deriving (Show, Eq, Ord)
+
+holdAfterPeakBot :: Double -> VU.Vector Double -> Budget -> Action
+holdAfterPeakBot epsilon exchangeRate (Budget base bought) = case last extrema of
+    Extremum Minimum i -> let rateAtExtremum = exchangeRate VU.! i
+                          in if base > 0 && (currentRate / rateAtExtremum - 1) > epsilon
+                             then Buy
+                             else Hold
+    Extremum Maximum i -> let rateAtExtremum = exchangeRate VU.! i
+                          in if bought > 0 && abs (1 - currentRate / rateAtExtremum) > epsilon
+                             then Sell
+                             else Hold
+    _ -> Hold
+  where extrema = findExtrema exchangeRate
+        currentRate = VU.last exchangeRate
+
+mapFst :: (a -> c) -> (a, b) -> (c, b)
+mapFst f (a, b) = (f a, b)
+
+simulate :: forall a. Int -> Budget -> VU.Vector Double ->
+                      (VU.Vector Double -> Budget -> Action) ->
+                      (Rational, [History])
+simulate omega budget history bot =
+    mapFst (currentValueInBase history) $ foldl' (uncurry step) (budget, []) range
+  where
+   range = [6 * omega..(VU.length history - 1)]
+   {-# INLINE smoothRange #-}
+   smoothRange i = gaussianSmooth omega (VU.slice 0 i history)
+   exchangeFee = 1 - 0.0025
+
+   currentValueInBase hist b@(Budget base bought) = DT.traceShow b $ base + bought *
+      (toRational $ VU.last hist) * exchangeFee
+
+   step :: Budget -> [History] -> Int -> (Budget, [History])
+   {-# INLINE step #-}
+   step b@(Budget base bought) h endIdx =
+      case action of
+        Sell -> (Budget (base + bought * currentPrice * exchangeFee) 0, (History Sell endIdx):h)
+        Buy -> (Budget 0 (bought + base / currentPrice * exchangeFee), (History Buy endIdx):h)
+        Hold -> (b, h)
+     where smoothed = smoothRange endIdx
+           action = bot smoothed b
+           currentPrice = toRational $ history VU.! endIdx
 
 
 gauss :: Double -> Double -> Double
@@ -136,12 +213,6 @@ findExtrema input =
                    else xs
         | otherwise = xs
   in reverse $ foldl' findExtrema' [] [0..(VU.length der - 1)]
-
-data Action a = Sell a | Buy a | Hold deriving (Show, Eq, Ord)
-data History = BoughtAt Double | SoldAt Double
-
--- we need bots that are functions and then
--- a simulator that runs these bots for the whole interval
 
 
 getTicks :: ByteString -> IO (Maybe (APIResponse (Vector Tick)))

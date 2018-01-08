@@ -10,7 +10,6 @@ import Graphics.Rendering.Chart.Easy
 import Graphics.Rendering.Chart.Backend.Cairo
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as VU
-import Data.Scientific (toRealFloat)
 import Data.Maybe (fromMaybe)
 import System.TimeIt (timeIt)
 import Control.DeepSeq (deepseq)
@@ -57,6 +56,10 @@ main = do
 
   putStrLn . show $ extrema
   putStrLn . show . VU.length $ smooth
+
+  let simulationPerf :: (Double, [History])
+      simulationPerf = mapFst fromRational $ simulate 100 (Budget 1 0) (VU.map snd unboxedticks) (holdAfterPeakBot 0.02)
+  putStrLn $ "Sumulation performance: " ++ (show $ simulationPerf)
 
   timeIt $ toFile (def & fo_size .~ (2500, 2500)) "plot.png" $ do
     plot (line "original" [VU.toList unboxedticks])
