@@ -16,6 +16,7 @@ import Control.DeepSeq (deepseq)
 
 import qualified Data.ByteString.Lazy as B
 import qualified Data.Set as S
+import Data.List (partition)
 
 tickToCoords :: Tick -> (Int, Double)
 tickToCoords t = (fromMaybe 0 $ timestamp t, closeV t)
@@ -57,9 +58,19 @@ main = do
   putStrLn . show $ extrema
   putStrLn . show . VU.length $ smooth
 
+
+
   let simulationPerf :: (Double, [History])
       simulationPerf = mapFst fromRational $ simulate 100 (Budget 1 0) (VU.map snd unboxedticks) (holdAfterPeakBot 0.02)
+      isSale (History Sell _) = True
+      isSale _ = False
+      (sales, buys) = partition isSale . snd $ simulationPerf
+      (sales', buys') = (map (pointToCoords . histPoint) sales, map (pointToCoords . histPoint) buys)
+
+      pointToCoords i = unboxedticks VU.! i
   putStrLn $ "Sumulation performance: " ++ (show $ simulationPerf)
+
+
 
   timeIt $ toFile (def & fo_size .~ (2500, 2500)) "plot.png" $ do
     plot (line "original" [VU.toList unboxedticks])
@@ -73,4 +84,14 @@ main = do
     plot $ liftEC $ do
       plot_points_title .= "extrema"
       plot_points_style .= (def {_point_radius = 8.0})
+      plot_points_values .= extremaCoords
+
+    plot $ liftEC $ do
+      plot_points_title .= "sales"
+      plot_points_style .= (def {_point_radius = 10.0, _point_color = opaque red})
+      plot_points_values .= extremaCoords
+
+    plot $ liftEC $ do
+      plot_points_title .= "buys"
+      plot_points_style .= (def {_point_radius = 8.0, _point_color = opaque blue})
       plot_points_values .= extremaCoords

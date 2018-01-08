@@ -10,6 +10,7 @@ module Lib
     , ExtremumType(..)
     , Budget(..)
     , History(..)
+    , Action(..)
     , simulate
     , holdAfterPeakBot
     , mapFst
@@ -136,16 +137,18 @@ gaussianPrepare omega input = (padded, kernel)
                                 else input VU.! (i - 3 * omega)
 
 data Action = Sell | Buy | Hold deriving (Show, Eq, Ord)
-data History = History Action Int
-  deriving (Show, Eq, Ord)
+data History = History {
+  histAction :: Action
+, histPoint :: Int
+} deriving (Show, Eq, Ord)
 
 data Budget = Budget {
   baseCurr :: Rational
 , boughtCurr :: Rational
 } deriving (Show, Eq, Ord)
 
-holdAfterPeakBot :: Double -> VU.Vector Double -> Budget -> Action
-holdAfterPeakBot epsilon exchangeRate (Budget base bought) = case last extrema of
+holdAfterPeakBot :: Double -> VU.Vector Double -> Double -> Budget -> Action
+holdAfterPeakBot epsilon exchangeRate currentRate (Budget base bought) = case last extrema of
     Extremum Minimum i -> let rateAtExtremum = exchangeRate VU.! i
                           in if base > 0 && (currentRate / rateAtExtremum - 1) > epsilon
                              then Buy
@@ -156,13 +159,12 @@ holdAfterPeakBot epsilon exchangeRate (Budget base bought) = case last extrema o
                              else Hold
     _ -> Hold
   where extrema = findExtrema exchangeRate
-        currentRate = VU.last exchangeRate
 
 mapFst :: (a -> c) -> (a, b) -> (c, b)
 mapFst f (a, b) = (f a, b)
 
 simulate :: forall a. Int -> Budget -> VU.Vector Double ->
-                      (VU.Vector Double -> Budget -> Action) ->
+                      (VU.Vector Double -> Double -> Budget -> Action) ->
                       (Rational, [History])
 simulate omega budget history bot =
     mapFst (currentValueInBase history) $ foldl' (uncurry step) (budget, []) range
@@ -183,7 +185,7 @@ simulate omega budget history bot =
         Buy -> (Budget 0 (bought + base / currentPrice * exchangeFee), (History Buy endIdx):h)
         Hold -> (b, h)
      where smoothed = smoothRange endIdx
-           action = bot smoothed b
+           action = bot smoothed (fromRational currentPrice) b
            currentPrice = toRational $ history VU.! endIdx
 
 
