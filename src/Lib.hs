@@ -40,8 +40,8 @@ import qualified Data.Vector.Unboxed as VU
 import Data.List (foldl')
 
 import GHC.Generics
-import Control.DeepSeq
 import qualified Debug.Trace as DT
+import Control.DeepSeq
 
 apiSecret :: ByteString
 apiSecret = "003dda1db8804f98bf6f4345b1e94dc7"
@@ -145,20 +145,30 @@ data History = History {
 data Budget = Budget {
   baseCurr :: Rational
 , boughtCurr :: Rational
+, lastTransactionPrice :: Rational
+, lastTransPoint :: Int
 } deriving (Show, Eq, Ord)
 
-holdAfterPeakBot :: Double -> VU.Vector Double -> Double -> Budget -> Action
-holdAfterPeakBot epsilon exchangeRate currentRate (Budget base bought) = case last extrema of
+holdAfterPeakBot :: Double -> Rational -> Int -> VU.Vector Double -> Double -> Budget -> Action
+holdAfterPeakBot epsilon minGain transLag exchangeRate currentRate (Budget base bought lastTrans lastTransIdx) =
+  if null extrema
+  then Hold
+  else case last extrema of
     Extremum Minimum i -> let rateAtExtremum = exchangeRate VU.! i
-                          in if base > 0 && (currentRate / rateAtExtremum - 1) > epsilon
+                          in if base > 0 && (currentRate / rateAtExtremum - 1) > epsilon &&
+                                (smoothedRate / rateAtExtremum - 1) > epsilon &&
+                                i - lastTransIdx > transLag
                              then Buy
                              else Hold
     Extremum Maximum i -> let rateAtExtremum = exchangeRate VU.! i
-                          in if bought > 0 && abs (1 - currentRate / rateAtExtremum) > epsilon
+                          in if bought > 0 && -- && abs (1 - currentRate / rateAtExtremum) > epsilon &&
+                                --abs (smoothedRate / rateAtExtremum - 1) > epsilon &&
+                                toRational currentRate / lastTrans > 1 + minGain
                              then Sell
                              else Hold
     _ -> Hold
   where extrema = findExtrema exchangeRate
+        smoothedRate = VU.last exchangeRate
 
 mapFst :: (a -> c) -> (a, b) -> (c, b)
 mapFst f (a, b) = (f a, b)
@@ -174,15 +184,15 @@ simulate omega budget history bot =
    smoothRange i = gaussianSmooth omega (VU.slice 0 i history)
    exchangeFee = 1 - 0.0025
 
-   currentValueInBase hist b@(Budget base bought) = DT.traceShow b $ base + bought *
+   currentValueInBase hist b@(Budget base bought _ _) = base + bought *
       (toRational $ VU.last hist) * exchangeFee
 
    step :: Budget -> [History] -> Int -> (Budget, [History])
    {-# INLINE step #-}
-   step b@(Budget base bought) h endIdx =
+   step b@(Budget base bought _ _) h endIdx =
       case action of
-        Sell -> (Budget (base + bought * currentPrice * exchangeFee) 0, (History Sell endIdx):h)
-        Buy -> (Budget 0 (bought + base / currentPrice * exchangeFee), (History Buy endIdx):h)
+        Sell -> (Budget (base + bought * currentPrice * exchangeFee) 0 currentPrice endIdx, (History Sell endIdx):h)
+        Buy -> (Budget 0 (bought + base / currentPrice * exchangeFee) currentPrice endIdx, (History Buy endIdx):h)
         Hold -> (b, h)
      where smoothed = smoothRange endIdx
            action = bot smoothed (fromRational currentPrice) b
